@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blinkit Analytics Dashboard — FY26</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #141414; color: #e8e8e8; }
+    .card, .slicer-bar { background: #1e1e1e !important; border-color: rgba(255,255,255,0.1) !important; }
+    .kpi { background: #252525 !important; }
+    .chip { background: #252525 !important; color: #aaa !important; border-color: rgba(255,255,255,0.15) !important; }
+    .chip.active { background: #1D9E75 !important; color: #fff !important; border-color: #1D9E75 !important; }
+    .prog { background: #2a2a2a !important; }
+    table th, table td { color: #e8e8e8; }
+    th { color: #888 !important; }
+    .card-title, .slicer-lbl { color: #888 !important; }
+    .kpi-lbl { color: #888 !important; }
+    .opp-card { background: #1e1e1e !important; border-color: rgba(255,255,255,0.1) !important; }
+    .risk-card { background: #252525 !important; }
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 38px; height: 38px; background: #1D9E75; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
+  .logo-name { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .logo-tag { font-size: 11px; color: #888; }
+  .live-badge { background: #EAF3DE; color: #3B6D11; font-size: 11px; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+  .dot { width: 7px; height: 7px; background: #639922; border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .slicer-bar { display: flex; flex-wrap: wrap; gap: 12px; padding: .9rem 1.1rem; background: #fff; border: 1px solid #e5e5e0; border-radius: 14px; margin-bottom: 1.1rem; align-items: center; }
+  .slicer-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+  .slicer-lbl { font-size: 10px; color: #888; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
+  .chip-row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .chip { font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid #d5d5d0; background: #f5f5f0; color: #666; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .chip:hover { border-color: #1D9E75; color: #0F6E56; }
+  .chip.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+  .slicer-divider { width: 1px; background: #e5e5e0; height: 44px; align-self: center; }
+  .reset-btn { font-size: 11px; padding: 5px 13px; background: transparent; cursor: pointer; align-self: flex-end; }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.1rem; }
+  .kpi { background: #eeeee8; border-radius: 10px; padding: .9rem 1rem; }
+  .kpi-lbl { font-size: 11px; color: #888; margin-bottom: 5px; display: flex; align-items: center; gap: 4px; }
+  .kpi-val { font-size: 22px; font-weight: 600; color: #1a1a1a; }
+  .kpi-chg { font-size: 11px; margin-top: 4px; }
+  .up { color: #0F6E56; } .down { color: #A32D2D; }
+
+  .charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card { background: #fff; border: 1px solid #e5e5e0; border-radius: 14px; padding: 1rem 1.15rem; }
+  .card-title { font-size: 10px; font-weight: 600; color: #888; letter-spacing: .6px; text-transform: uppercase; margin-bottom: .9rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 11px; color: #888; }
+  .leg-item { display: flex; align-items: center; gap: 4px; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  .bottom-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.25rem; }
+  .city-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+  .city-name { font-size: 12px; }
+  .city-val { font-size: 12px; font-weight: 600; }
+  .prog { height: 7px; background: #eeeee8; border-radius: 4px; margin-bottom: 10px; }
+  .prog-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  th { font-size: 10px; color: #888; font-weight: 600; text-align: left; padding: 3px 0 7px; border-bottom: 1px solid #e5e5e0; }
+  td { padding: 6px 0; border-bottom: 1px solid #e5e5e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  .pill { font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+  .pill-g { background: #EAF3DE; color: #3B6D11; }
+  .pill-a { background: #FAEEDA; color: #854F0B; }
+  .pill-r { background: #FCEBEB; color: #A32D2D; }
+  .no-data { display: flex; align-items: center; justify-content: center; height: 80px; color: #888; font-size: 12px; }
+
+  .analysis-section { margin-top: 1.25rem; }
+  .sec-label { font-size: 10px; font-weight: 600; color: #888; letter-spacing: .6px; text-transform: uppercase; margin-bottom: .75rem; }
+  .opp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.1rem; }
+  .opp-card { background: #fff; border: 1px solid #e5e5e0; border-radius: 14px; padding: 1rem 1.1rem; }
+  .opp-header { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+  .opp-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .icon-teal { background: #E1F5EE; color: #0F6E56; }
+  .icon-blue { background: #E6F1FB; color: #185FA5; }
+  .icon-amber { background: #FAEEDA; color: #854F0B; }
+  .icon-purple { background: #EEEDFE; color: #534AB7; }
+  .opp-title { font-size: 13px; font-weight: 600; }
+  .opp-size { font-size: 11px; color: #888; }
+  .opp-body { font-size: 12px; color: #666; line-height: 1.6; margin-bottom: 10px; }
+  .tag { font-size: 10px; padding: 2px 9px; border-radius: 12px; font-weight: 600; margin-right: 4px; }
+  .tag-g { background: #EAF3DE; color: #3B6D11; }
+  .tag-a { background: #FAEEDA; color: #854F0B; }
+  .tag-b { background: #E6F1FB; color: #185FA5; }
+  .tag-p { background: #EEEDFE; color: #534AB7; }
+
+  .bar-section { background: #fff; border: 1px solid #e5e5e0; border-radius: 14px; padding: 1rem 1.15rem; margin-bottom: 1.1rem; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-name { font-size: 12px; min-width: 140px; }
+  .bar-track { flex: 1; height: 8px; background: #eeeee8; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-val { font-size: 12px; font-weight: 600; min-width: 44px; text-align: right; }
+
+  .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .risk-card { background: #eeeee8; border-radius: 10px; padding: .85rem .95rem; }
+  .risk-title { font-size: 12px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+  .risk-body { font-size: 11px; color: #666; line-height: 1.5; }
+
+  .footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e5e5e0; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #aaa; }
+  .made-with { display: flex; align-items: center; gap: 5px; }
+
+  @media (max-width: 768px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .bottom-row { grid-template-columns: 1fr; }
+    .opp-grid { grid-template-columns: 1fr; }
+    .risk-grid { grid-template-columns: 1fr; }
+    .slicer-divider { display: none; }
+    .slicer-group { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-shopping-cart"></i></div>
+      <div>
+        <div class="logo-name">Blinkit Analytics</div>
+        <div class="logo-tag">Interactive Dashboard &bull; FY26</div>
+      </div>
+    </div>
+    <div class="live-badge"><div class="dot"></div> Live Data</div>
+  </div>
+
+  <!-- SLICERS -->
+  <div class="slicer-bar">
+    <div class="slicer-group">
+      <div class="slicer-lbl"><i class="ti ti-calendar" style="font-size:12px"></i> Period</div>
+      <div class="chip-row">
+        <div class="chip active" data-group="period" data-val="Q1">Q1</div>
+        <div class="chip" data-group="period" data-val="Q2">Q2</div>
+        <div class="chip" data-group="period" data-val="Q3">Q3</div>
+        <div class="chip" data-group="period" data-val="Q4">Q4</div>
+      </div>
+    </div>
+    <div class="slicer-divider"></div>
+    <div class="slicer-group">
+      <div class="slicer-lbl"><i class="ti ti-map-pin" style="font-size:12px"></i> City</div>
+      <div class="chip-row">
+        <div class="chip active" data-group="city" data-val="All">All</div>
+        <div class="chip" data-group="city" data-val="Mumbai">Mumbai</div>
+        <div class="chip" data-group="city" data-val="Delhi">Delhi</div>
+        <div class="chip" data-group="city" data-val="Bengaluru">Bengaluru</div>
+        <div class="chip" data-group="city" data-val="Hyderabad">Hyderabad</div>
+        <div class="chip" data-group="city" data-val="Chennai">Chennai</div>
+      </div>
+    </div>
+    <div class="slicer-divider"></div>
+    <div class="slicer-group">
+      <div class="slicer-lbl"><i class="ti ti-basket" style="font-size:12px"></i> Category</div>
+      <div class="chip-row">
+        <div class="chip active" data-group="cat" data-val="All">All</div>
+        <div class="chip" data-group="cat" data-val="Fruits & Veg">Fruits &amp; Veg</div>
+        <div class="chip" data-group="cat" data-val="Dairy">Dairy</div>
+        <div class="chip" data-group="cat" data-val="Staples">Staples</div>
+        <div class="chip" data-group="cat" data-val="Snacks">Snacks</div>
+        <div class="chip" data-group="cat" data-val="Personal Care">Personal Care</div>
+      </div>
+    </div>
+    <button class="chip reset-btn" id="reset-btn"><i class="ti ti-refresh" style="font-size:12px"></i> Reset</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-lbl"><i class="ti ti-currency-rupee" style="font-size:12px"></i> Revenue</div>
+      <div class="kpi-val" id="kpi-rev">&#8377;84.2Cr</div>
+      <div class="kpi-chg up" id="kpi-rev-chg"><i class="ti ti-trending-up" style="font-size:11px"></i> +18.4% MoM</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl"><i class="ti ti-shopping-bag" style="font-size:12px"></i> Orders</div>
+      <div class="kpi-val" id="kpi-ord">1,24,350</div>
+      <div class="kpi-chg up" id="kpi-ord-chg"><i class="ti ti-trending-up" style="font-size:11px"></i> +9.2% DoD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl"><i class="ti ti-users" style="font-size:12px"></i> Active Users</div>
+      <div class="kpi-val" id="kpi-usr">38.6L</div>
+      <div class="kpi-chg up" id="kpi-usr-chg"><i class="ti ti-trending-up" style="font-size:11px"></i> +22.1% YoY</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl"><i class="ti ti-clock" style="font-size:12px"></i> Avg Delivery</div>
+      <div class="kpi-val" id="kpi-del">11.4 min</div>
+      <div class="kpi-chg up" id="kpi-del-chg"><i class="ti ti-trending-down" style="font-size:11px"></i> -2.1 min improved</div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Revenue Trend (&#8377; Crore)</div>
+      <div class="legend">
+        <span class="leg-item"><span class="leg-dot" style="background:#1D9E75"></span><span id="leg1">FY26 Q1</span></span>
+        <span class="leg-item"><span class="leg-dot" style="background:#9FE1CB;border:1px dashed #1D9E75"></span>FY25</span>
+      </div>
+      <div style="position:relative;width:100%;height:220px">
+        <canvas id="revChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Category Split</div>
+      <div style="position:relative;width:100%;height:168px;margin-bottom:10px">
+        <canvas id="catChart"></canvas>
+      </div>
+      <div class="legend" style="justify-content:center">
+        <span class="leg-item"><span class="leg-dot" style="background:#1D9E75"></span>Fruits &amp; Veg 28%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#378ADD"></span>Dairy 22%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#D4537E"></span>Staples 18%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#EF9F27"></span>Snacks 14%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#7F77DD"></span>Care 10%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#888780"></span>Others 8%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="bottom-row">
+    <div class="card">
+      <div class="card-title">Top Cities</div>
+      <div id="city-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Products</div>
+      <div id="products-table"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Hourly Orders</div>
+      <div style="position:relative;width:100%;height:172px">
+        <canvas id="delChart"></canvas>
+      </div>
+      <div style="font-size:10px;color:#888;display:flex;justify-content:space-between;margin-top:8px">
+        <span id="peak-lbl">Peak: 7&ndash;9 AM</span>
+        <span id="ontime-lbl">98.4% on time</span>
+        <span>4.8&#9733; rating</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROWTH ANALYSIS -->
+  <div class="analysis-section">
+    <div class="sec-label">Growth Opportunities</div>
+    <div class="opp-grid">
+      <div class="opp-card">
+        <div class="opp-header">
+          <div class="opp-icon icon-teal"><i class="ti ti-map-pin"></i></div>
+          <div>
+            <div class="opp-title">Tier-2 / Tier-3 Expansion</div>
+            <div class="opp-size">Market size: $3&ndash;4B untapped</div>
+          </div>
+        </div>
+        <div class="opp-body">Online retail in chhote shehar tezi se badh raha hai. Abhi sirf 153+ cities cover hain &mdash; 200+ cities ka target FY27 tak. Low density ka challenge hai par first-mover advantage huge hai.</div>
+        <span class="tag tag-g">High potential</span><span class="tag tag-a">Medium risk</span>
+      </div>
+      <div class="opp-card">
+        <div class="opp-header">
+          <div class="opp-icon icon-blue"><i class="ti ti-device-mobile"></i></div>
+          <div>
+            <div class="opp-title">Non-Grocery Categories</div>
+            <div class="opp-size">Electronics, beauty, pharma</div>
+          </div>
+        </div>
+        <div class="opp-body">30,000 SKU pivot already chal raha hai &mdash; iPhones, PlayStation, premium beauty. Pharmacy (10-min meds) ek high-frequency, better-margin adjacency hai. Beauty &amp; Personal Care 75% surge festive 2026 mein.</div>
+        <span class="tag tag-b">High margin</span><span class="tag tag-g">Already proven</span>
+      </div>
+      <div class="opp-card">
+        <div class="opp-header">
+          <div class="opp-icon icon-amber"><i class="ti ti-speakerphone"></i></div>
+          <div>
+            <div class="opp-title">Advertising Revenue</div>
+            <div class="opp-size">80%+ profit margin stream</div>
+          </div>
+        </div>
+        <div class="opp-body">Blinkit ka ad revenue food delivery se zyada % NOV generate karta hai. Brand Central self-serve platform scale ho raha hai. FMCG brands ke liye sponsored listings &#8377;10&ndash;50/click &mdash; pure margin.</div>
+        <span class="tag tag-g">Best margins</span><span class="tag tag-b">Scaling fast</span>
+      </div>
+      <div class="opp-card">
+        <div class="opp-header">
+          <div class="opp-icon icon-purple"><i class="ti ti-packages"></i></div>
+          <div>
+            <div class="opp-title">Private Labels &amp; 1P Inventory</div>
+            <div class="opp-size">90% NOV now first-party</div>
+          </div>
+        </div>
+        <div class="opp-body">FY26 mein marketplace se inventory-led model shift ho gaya. Ab Blinkit khud stock khareedta hai aur retail margin khaata hai. Private label brands next big lever hain.</div>
+        <span class="tag tag-p">Structural shift</span><span class="tag tag-g">Higher margins</span>
+      </div>
+    </div>
+
+    <div class="bar-section">
+      <div class="sec-label" style="margin-bottom:.9rem">Competitor Market Share &mdash; Quick Commerce India (2026)</div>
+      <div class="bar-row">
+        <div class="bar-name">Blinkit</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#1D9E75"></div></div>
+        <div class="bar-val">50%</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">Swiggy Instamart</div>
+        <div class="bar-track"><div class="bar-fill" style="width:54%;background:#378ADD"></div></div>
+        <div class="bar-val">27%</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">Zepto</div>
+        <div class="bar-track"><div class="bar-fill" style="width:42%;background:#7F77DD"></div></div>
+        <div class="bar-val">21%</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name">Others</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4%;background:#888780"></div></div>
+        <div class="bar-val">2%</div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:8px">Market total GMV: $6&ndash;7B (2024), projected ~40% CAGR through 2030</div>
+    </div>
+
+    <div class="sec-label">Key Risks</div>
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-title"><i class="ti ti-alert-triangle" style="font-size:14px;color:#854F0B"></i> Regulatory Pressure</div>
+        <div class="risk-body">Govt ne &ldquo;10-minute&rdquo; tagline ban ki &mdash; rider safety aur pay practices pe scrutiny badh rahi hai.</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-title"><i class="ti ti-chart-line" style="font-size:14px;color:#185FA5"></i> Tier-2 Density Problem</div>
+        <div class="risk-body">Chhote shehar mein order volume kam &mdash; dark store economics mushkil, careful expansion zaruri.</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-title"><i class="ti ti-rotate" style="font-size:14px;color:#A32D2D"></i> Returns Complexity</div>
+        <div class="risk-body">Electronics aur fashion mein returns aate hain &mdash; reverse logistics grocery se alag aur costly hai.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Blinkit Analytics Dashboard &bull; FY26 Data &bull; June 2026</div>
+    <div class="made-with">Made with <i class="ti ti-heart" style="color:#D4537E;font-size:12px"></i> using Claude AI</div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  Q1:{ rev:[58,63,69,74,79,84], rev25:[40,44,47,50,52,55], orders:'98,200', users:'31.2L', del:'13.1 min', cities:{Mumbai:16.2,Delhi:14.1,Bengaluru:11.8,Hyderabad:8.4,Chennai:7.1}, cat:[26,20,19,15,11,9], peak:'8\u201310 AM', ontime:'97.8%', delHrs:[900,3800,7100,6400,4800,2900,2400,3100,6900,5800,1800] },
+  Q2:{ rev:[63,68,74,79,82,87], rev25:[44,47,50,52,55,58], orders:'1,08,500', users:'34.5L', del:'12.2 min', cities:{Mumbai:18.4,Delhi:16.2,Bengaluru:13.4,Hyderabad:9.8,Chennai:8.2}, cat:[27,21,18,15,10,9], peak:'7\u20139 AM', ontime:'98.1%', delHrs:[1000,4200,7800,7000,5200,3100,2700,3400,7200,6100,2000] },
+  Q3:{ rev:[68,73,78,82,86,90], rev25:[47,50,52,55,58,61], orders:'1,16,800', users:'36.8L', del:'11.8 min', cities:{Mumbai:19.8,Delhi:17.6,Bengaluru:14.5,Hyderabad:10.6,Chennai:8.9}, cat:[28,22,18,14,10,8], peak:'7\u20139 AM', ontime:'98.2%', delHrs:[1100,4600,8000,7400,5400,3200,2800,3600,7500,6300,2100] },
+  Q4:{ rev:[74,79,82,86,90,84], rev25:[50,52,55,58,61,55], orders:'1,24,350', users:'38.6L', del:'11.4 min', cities:{Mumbai:21.4,Delhi:18.9,Bengaluru:15.6,Hyderabad:11.2,Chennai:9.3}, cat:[28,22,18,14,10,8], peak:'7\u20139 AM', ontime:'98.4%', delHrs:[1200,4800,8200,7600,5400,3200,2800,3600,7800,6400,2200] }
+};
+const CITY_DATA = {
+  All:null,
+  Mumbai:{rev:'\u20b921.4Cr',orders:'28,400',users:'8.2L',del:'10.2 min',revChg:'+21%',ordChg:'+11%',usrChg:'+25%'},
+  Delhi:{rev:'\u20b918.9Cr',orders:'24,100',users:'7.4L',del:'11.1 min',revChg:'+17%',ordChg:'+8%',usrChg:'+20%'},
+  Bengaluru:{rev:'\u20b915.6Cr',orders:'19,800',users:'6.1L',del:'10.8 min',revChg:'+19%',ordChg:'+10%',usrChg:'+24%'},
+  Hyderabad:{rev:'\u20b911.2Cr',orders:'14,200',users:'4.4L',del:'12.1 min',revChg:'+14%',ordChg:'+7%',usrChg:'+18%'},
+  Chennai:{rev:'\u20b99.3Cr',orders:'11,800',users:'3.6L',del:'12.8 min',revChg:'+12%',ordChg:'+6%',usrChg:'+16%'}
+};
+const CAT_DATA = {
+  All:null,
+  'Fruits & Veg':{rev:'\u20b923.6Cr',orders:'42,100',users:'18.4L',del:'10.8 min',revChg:'+24%',ordChg:'+14%',usrChg:'+28%'},
+  Dairy:{rev:'\u20b918.5Cr',orders:'38,200',users:'16.2L',del:'11.2 min',revChg:'+19%',ordChg:'+11%',usrChg:'+22%'},
+  Staples:{rev:'\u20b915.2Cr',orders:'22,400',users:'11.8L',del:'11.8 min',revChg:'+15%',ordChg:'+8%',usrChg:'+18%'},
+  Snacks:{rev:'\u20b911.8Cr',orders:'16,800',users:'8.6L',del:'12.1 min',revChg:'+21%',ordChg:'+12%',usrChg:'+26%'},
+  'Personal Care':{rev:'\u20b98.4Cr',orders:'8,400',users:'4.2L',del:'12.4 min',revChg:'+31%',ordChg:'+18%',usrChg:'+35%'}
+};
+const PRODUCTS_ALL = [
+  {name:'Amul Milk 1L',units:'84,200',status:'Hot',pill:'pill-g'},
+  {name:'Tomato 1kg',units:'72,450',status:'High',pill:'pill-g'},
+  {name:'Onion 1kg',units:'68,100',status:'Avg',pill:'pill-a'},
+  {name:'Eggs Dozen',units:'61,300',status:'Hot',pill:'pill-g'},
+  {name:'Bread',units:'54,800',status:'High',pill:'pill-g'},
+  {name:'Surf Excel 1kg',units:'42,100',status:'Avg',pill:'pill-a'}
+];
+const PRODUCTS_CAT = {
+  'Fruits & Veg':[{name:'Tomato 1kg',units:'72,450',status:'Hot',pill:'pill-g'},{name:'Onion 1kg',units:'68,100',status:'High',pill:'pill-g'},{name:'Banana Dozen',units:'48,200',status:'High',pill:'pill-g'},{name:'Potato 1kg',units:'41,100',status:'Avg',pill:'pill-a'},{name:'Spinach 500g',units:'28,400',status:'Avg',pill:'pill-a'}],
+  Dairy:[{name:'Amul Milk 1L',units:'84,200',status:'Hot',pill:'pill-g'},{name:'Curd 500g',units:'52,100',status:'High',pill:'pill-g'},{name:'Paneer 200g',units:'38,800',status:'High',pill:'pill-g'},{name:'Butter 100g',units:'29,400',status:'Avg',pill:'pill-a'},{name:'Cheese Slices',units:'18,600',status:'Low',pill:'pill-r'}],
+  Staples:[{name:'Basmati Rice 5kg',units:'31,200',status:'High',pill:'pill-g'},{name:'Atta 10kg',units:'28,400',status:'High',pill:'pill-g'},{name:'Toor Dal 1kg',units:'22,100',status:'Avg',pill:'pill-a'},{name:'Sugar 1kg',units:'19,800',status:'Avg',pill:'pill-a'},{name:'Salt 1kg',units:'14,200',status:'Low',pill:'pill-r'}],
+  Snacks:[{name:'Lays Classic',units:'42,100',status:'Hot',pill:'pill-g'},{name:'Kurkure 90g',units:'38,800',status:'High',pill:'pill-g'},{name:'Biscuits Parle G',units:'32,400',status:'High',pill:'pill-g'},{name:'Maggi 2min',units:'28,100',status:'Avg',pill:'pill-a'},{name:'Haldirams Mix',units:'21,600',status:'Avg',pill:'pill-a'}],
+  'Personal Care':[{name:'Surf Excel 1kg',units:'42,100',status:'Hot',pill:'pill-g'},{name:'Dove Soap 100g',units:'28,400',status:'High',pill:'pill-g'},{name:'Head & Shoulders',units:'18,200',status:'Avg',pill:'pill-a'},{name:'Dettol Handwash',units:'14,800',status:'High',pill:'pill-g'},{name:'Colgate 150g',units:'11,200',status:'Avg',pill:'pill-a'}]
+};
+const CITY_COLORS=['#1D9E75','#378ADD','#7F77DD','#D4537E','#EF9F27'];
+const CAT_COLORS=['#1D9E75','#378ADD','#D4537E','#EF9F27','#7F77DD','#888780'];
+let state={period:'Q1',city:'All',cat:'All'};
+let revChart,catChartObj,delChart;
+
+function updateKPIs(){
+  const q=DATA[state.period];
+  const ovr=CAT_DATA[state.cat]||CITY_DATA[state.city];
+  document.getElementById('kpi-rev').textContent=ovr?ovr.rev:('\u20b9'+q.rev[q.rev.length-1]+'Cr');
+  document.getElementById('kpi-ord').textContent=ovr?ovr.orders:q.orders;
+  document.getElementById('kpi-usr').textContent=ovr?ovr.users:q.users;
+  document.getElementById('kpi-del').textContent=ovr?ovr.del:q.del;
+  if(ovr){
+    document.getElementById('kpi-rev-chg').innerHTML='<i class="ti ti-trending-up" style="font-size:11px"></i> '+ovr.revChg+' YoY';
+    document.getElementById('kpi-ord-chg').innerHTML='<i class="ti ti-trending-up" style="font-size:11px"></i> '+ovr.ordChg+' DoD';
+    document.getElementById('kpi-usr-chg').innerHTML='<i class="ti ti-trending-up" style="font-size:11px"></i> '+ovr.usrChg+' YoY';
+    document.getElementById('kpi-del-chg').innerHTML='<i class="ti ti-trending-down" style="font-size:11px"></i> Improving';
+  } else {
+    document.getElementById('kpi-rev-chg').innerHTML='<i class="ti ti-trending-up" style="font-size:11px"></i> +18.4% MoM';
+    document.getElementById('kpi-ord-chg').innerHTML='<i class="ti ti-trending-up" style="font-size:11px"></i> +9.2% DoD';
+    document.getElementById('kpi-usr-chg').innerHTML='<i class="ti ti-trending-up" style="font-size:11px"></i> +22.1% YoY';
+    document.getElementById('kpi-del-chg').innerHTML='<i class="ti ti-trending-down" style="font-size:11px"></i> -2.1 min improved';
+  }
+}
+function updateRevChart(){
+  const q=DATA[state.period];
+  const labels=state.period==='Q1'||state.period==='Q3'?['Jan','Feb','Mar','Apr','May','Jun']:['Jul','Aug','Sep','Oct','Nov','Dec'];
+  revChart.data.labels=labels;
+  revChart.data.datasets[0].data=q.rev;
+  revChart.data.datasets[1].data=q.rev25;
+  document.getElementById('leg1').textContent='FY26 '+state.period;
+  revChart.update();
+}
+function updateCatChart(){
+  const q=DATA[state.period];
+  const catLabels=['Fruits & Veg','Dairy','Staples','Snacks','Personal Care','Others'];
+  catChartObj.data.datasets[0].data=q.cat;
+  catChartObj.data.datasets[0].backgroundColor=CAT_COLORS.map((c,i)=>state.cat==='All'?c:(catLabels[i]===state.cat?c:'#ddd'));
+  catChartObj.update();
+}
+function updateCityBars(){
+  const q=DATA[state.period];
+  let cities=Object.entries(q.cities);
+  if(state.city!=='All') cities=cities.filter(([c])=>c===state.city);
+  const max=Math.max(...cities.map(([,v])=>v));
+  const el=document.getElementById('city-bars');
+  if(!cities.length){el.innerHTML='<div class="no-data">No data</div>';return;}
+  el.innerHTML=cities.map(([city,val],i)=>`<div class="city-row"><span class="city-name">${city}</span><span class="city-val">\u20b9${val}Cr</span></div><div class="prog"><div class="prog-fill" style="width:${Math.round(val/max*100)}%;background:${CITY_COLORS[i%CITY_COLORS.length]}"></div></div>`).join('');
+}
+function updateProducts(){
+  const prods=state.cat!=='All'?(PRODUCTS_CAT[state.cat]||PRODUCTS_ALL):PRODUCTS_ALL;
+  document.getElementById('products-table').innerHTML=`<table><thead><tr><th style="width:52%">Product</th><th style="width:28%">Units</th><th style="width:20%">Status</th></tr></thead><tbody>${prods.map(p=>`<tr><td>${p.name}</td><td>${p.units}</td><td><span class="pill ${p.pill}">${p.status}</span></td></tr>`).join('')}</tbody></table>`;
+}
+function updateDelChart(){
+  const q=DATA[state.period];
+  delChart.data.datasets[0].data=q.delHrs;
+  delChart.data.datasets[0].backgroundColor=q.delHrs.map(v=>v>=7000?'#1D9E75':v>=4000?'#9FE1CB':'#E1F5EE');
+  delChart.update();
+  document.getElementById('peak-lbl').textContent='Peak: '+q.peak;
+  document.getElementById('ontime-lbl').textContent=q.ontime+' on time';
+}
+function renderAll(){updateKPIs();updateRevChart();updateCatChart();updateCityBars();updateProducts();updateDelChart();}
+
+document.addEventListener('click',function(e){
+  const chip=e.target.closest('.chip[data-group]');
+  if(chip){
+    const g=chip.dataset.group,v=chip.dataset.val;
+    document.querySelectorAll('[data-group="'+g+'"]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    state[g==='period'?'period':g==='city'?'city':'cat']=v;
+    renderAll();
+  }
+  if(e.target.closest('#reset-btn')){
+    state={period:'Q1',city:'All',cat:'All'};
+    ['period','city','cat'].forEach(g=>document.querySelectorAll('[data-group="'+g+'"]').forEach((c,i)=>c.classList.toggle('active',i===0)));
+    renderAll();
+  }
+});
+
+revChart=new Chart(document.getElementById('revChart'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'FY26',data:DATA.Q1.rev,backgroundColor:'#1D9E75',borderRadius:4,barPercentage:.45},{label:'FY25',data:DATA.Q1.rev25,backgroundColor:'#9FE1CB',borderRadius:4,barPercentage:.45}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' \u20b9'+ctx.parsed.y+'Cr'}}},scales:{x:{grid:{display:false},ticks:{color:'#888',font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#888',font:{size:11},callback:v=>'\u20b9'+v+'Cr'},beginAtZero:true}}}});
+catChartObj=new Chart(document.getElementById('catChart'),{type:'doughnut',data:{labels:['Fruits & Veg','Dairy','Staples','Snacks','Personal Care','Others'],datasets:[{data:DATA.Q1.cat,backgroundColor:CAT_COLORS,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+'%'}}}}});
+delChart=new Chart(document.getElementById('delChart'),{type:'bar',data:{labels:['6am','7am','8am','9am','10am','12pm','2pm','5pm','7pm','8pm','10pm'],datasets:[{data:DATA.Q1.delHrs,backgroundColor:DATA.Q1.delHrs.map(v=>v>=7000?'#1D9E75':v>=4000?'#9FE1CB':'#E1F5EE'),borderRadius:3,barPercentage:.7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#888',font:{size:10}}},y:{display:false,beginAtZero:true}}}});
+updateCityBars();
+updateProducts();
+</script>
+</body>
+</html>
